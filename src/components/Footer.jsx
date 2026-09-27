@@ -6,9 +6,7 @@ export default function Footer() {
           Jobsheet Praktikum · Pemrograman Web ·{" "}
           <span className="text-gold/70">Offering C</span>
         </p>
-        <p className="mt-1">
-          Dibuat untuk keperluan asistensi · Semester 5
-        </p>
+        <p className="mt-1">Dibuat untuk keperluan asistensi · Semester 3</p>
       </div>
     </footer>
   );

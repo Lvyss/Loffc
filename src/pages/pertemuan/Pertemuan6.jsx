@@ -21,9 +21,9 @@ const praktikumList = [
 const tugasList = [
   {
     id: 1,
-    title: "Tugas — [Judul Tugas]",
-    desc: "[Deskripsi tugas — nanti diisi setelah praktikum selesai.]",
-    tag: "Tugas",
+    title: "Tugas — Implementasi FoodMart",
+    desc: "Terapin pola CRUD ke project nyata: kategori produk & produk + suntik ke halaman Home.",
+    tag: "Tugas · Project",
     path: "/pertemuan/6/tugas",
   },
 ];
