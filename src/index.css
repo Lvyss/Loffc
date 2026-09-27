@@ -1,0 +1,57 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-bg-base font-body text-neutral-200 antialiased;
+    background-image:
+      radial-gradient(ellipse at top, rgba(200, 155, 60, 0.06), transparent 55%),
+      radial-gradient(ellipse at bottom right, rgba(200, 155, 60, 0.04), transparent 50%);
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background-color: rgba(200, 155, 60, 0.3);
+    color: #fff;
+  }
+}
+
+@layer components {
+  .gold-gradient-text {
+    background: linear-gradient(135deg, #e0be6d 0%, #c89b3c 50%, #8a6b28 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .card-hover:hover {
+    border-color: rgba(200, 155, 60, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px -12px rgba(200, 155, 60, 0.25);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #120e08;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #3a2f1a;
+    border-radius: 10px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #8a6b28;
+  }
+}
