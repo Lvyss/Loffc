@@ -328,9 +328,6 @@ export default function Praktikum1() {
             <span className="rounded-full border border-gold/20 bg-bg-elevated px-3 py-1 text-xs text-neutral-300">
               🎯 Tujuan: Migration → Model → Route → Controller → View
             </span>
-            <span className="rounded-full border border-gold/20 bg-bg-elevated px-3 py-1 text-xs text-neutral-300">
-              ⚙️ Prasyarat: Project Laravel dari Pertemuan 1
-            </span>
           </div>
         </div>
 

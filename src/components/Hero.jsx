@@ -5,7 +5,7 @@ export default function Hero() {
 
       <div className="relative mx-auto max-w-3xl text-center">
         <span className="inline-block rounded-full border border-gold/25 bg-bg-card px-4 py-1.5 text-xs font-medium uppercase tracking-widest text-gold-soft">
-          Semester 5 · Kelas C
+          Semester 3 · Kelas C
         </span>
 
         <h1 className="mt-6 font-display text-5xl font-bold leading-tight md:text-6xl">
@@ -15,9 +15,8 @@ export default function Hero() {
         </h1>
 
         <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-neutral-400">
-          Panduan praktikum mata kuliah Pemrograman Web untuk Offering C.
-          Semua materi, praktikum, dan tugas per pertemuan tersusun rapi di
-          bawah ini.
+          Panduan praktikum mata kuliah Pemrograman Web untuk Offering C. Semua
+          materi, praktikum, dan tugas per pertemuan tersusun rapi di bawah ini.
         </p>
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm">
@@ -26,8 +25,16 @@ export default function Hero() {
             <span className="font-semibold text-gold-soft">6</span>
           </div>
           <div className="rounded-lg border border-gold/20 bg-bg-card px-4 py-2">
-            <span className="text-neutral-500">Mentor: </span>
-            <span className="font-semibold text-gold-soft">—</span>
+            <span className="text-neutral-500">Dosen : </span>
+            <span className="font-semibold text-gold-soft">
+              Shofiyah Al Idrus, S.Pd, M.Pd
+            </span>
+          </div>
+          <div className="rounded-lg border border-gold/20 bg-bg-card px-4 py-2">
+            <span className="text-neutral-500">Mentor : </span>
+            <span className="font-semibold text-gold-soft">
+              Eka Nanda Susila
+            </span>
           </div>
         </div>
       </div>

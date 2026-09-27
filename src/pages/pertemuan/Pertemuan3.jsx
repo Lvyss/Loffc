@@ -13,7 +13,7 @@ export default function Pertemuan3() {
         Pertemuan 03
       </span>
       <h1 className="mt-4 font-display text-4xl font-bold">
-        <span className="gold-gradient-text">State & Event Handling</span>
+        <span className="gold-gradient-text">Dasar HTML & CSS</span>
       </h1>
       <p className="mt-4 text-neutral-400">
         Konten pertemuan ini akan diisi nanti.

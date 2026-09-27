@@ -13,7 +13,7 @@ export default function Pertemuan4() {
         Pertemuan 04
       </span>
       <h1 className="mt-4 font-display text-4xl font-bold">
-        <span className="gold-gradient-text">Styling dengan Tailwind CSS</span>
+        <span className="gold-gradient-text">Dasar JavaScript</span>
       </h1>
       <p className="mt-4 text-neutral-400">
         Konten pertemuan ini akan diisi nanti.

@@ -14,7 +14,7 @@ export default function Pertemuan1() {
       </span>
       <h1 className="mt-4 font-display text-4xl font-bold">
         <span className="gold-gradient-text">
-          Pengenalan Web & Setup Environment
+          -
         </span>
       </h1>
       <p className="mt-4 text-neutral-400">
