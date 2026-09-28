@@ -26,6 +26,13 @@ const tugasList = [
     tag: "Tugas · Project",
     path: "/pertemuan/6/tugas",
   },
+  {
+    id: 2,
+    title: "Tugas Tambahan — Mengenal PHP",
+    desc: "Bacaan 10 poin + esai: jelaskan apa itu PHP, cara kerjanya, dan kaitannya dengan Laravel.",
+    tag: "Tugas · Esai",
+    path: "/pertemuan/6/tugas-php",
+  },
 ];
 
 export default function Pertemuan6() {
@@ -33,14 +40,14 @@ export default function Pertemuan6() {
     <div className="relative min-h-screen">
       <div className="pointer-events-none absolute left-1/2 top-0 h-64 w-[40rem] -translate-x-1/2 rounded-full bg-gold/10 blur-[120px]" />
 
-      <div className="relative mx-auto max-w-4xl px-6 py-12">
+      <div className="relative max-w-4xl px-6 py-12 mx-auto">
         {/* Back */}
         <Link
           to="/"
-          className="mb-8 inline-flex items-center gap-2 text-sm text-neutral-500 transition-colors hover:text-gold-soft"
+          className="inline-flex items-center gap-2 mb-8 text-sm transition-colors text-neutral-500 hover:text-gold-soft"
         >
           <svg
-            className="h-4 w-4"
+            className="w-4 h-4"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -56,16 +63,16 @@ export default function Pertemuan6() {
         </Link>
 
         {/* Header */}
-        <div className="mb-10 border-b border-gold/15 pb-6">
-          <span className="inline-block rounded-full border border-gold/25 bg-bg-card px-3 py-1 text-xs font-medium uppercase tracking-widest text-gold-soft">
+        <div className="pb-6 mb-10 border-b border-gold/15">
+          <span className="inline-block px-3 py-1 text-xs font-medium tracking-widest uppercase border rounded-full border-gold/25 bg-bg-card text-gold-soft">
             Pertemuan 06
           </span>
-          <h1 className="mt-4 font-display text-4xl font-bold leading-tight md:text-5xl">
+          <h1 className="mt-4 text-4xl font-bold leading-tight font-display md:text-5xl">
             <span className="gold-gradient-text">
               CRUD Kategori & Relasi Buku
             </span>
           </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-neutral-400">
+          <p className="max-w-2xl mt-3 text-sm leading-relaxed text-neutral-400">
             Belajar pola CRUD lengkap di Laravel, mulai dari migration,
             model, route, controller, sampai view — lalu lanjut ke relasi
             antar tabel.
@@ -74,8 +81,8 @@ export default function Pertemuan6() {
 
         {/* Slide Materi */}
         <section className="mb-12">
-          <h2 className="mb-4 flex items-center gap-3 font-display text-xl font-semibold text-neutral-100">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-gold/30 bg-gold/10 text-gold-soft">
+          <h2 className="flex items-center gap-3 mb-4 text-xl font-semibold font-display text-neutral-100">
+            <span className="flex items-center justify-center border rounded-lg h-9 w-9 border-gold/30 bg-gold/10 text-gold-soft">
               📊
             </span>
             Slide Materi
@@ -89,12 +96,12 @@ export default function Pertemuan6() {
 
         {/* SECTION: PRAKTIKUM */}
         <section className="mb-12">
-          <div className="mb-5 flex items-center gap-3 border-b border-gold/15 pb-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-gold/30 bg-gold/10 text-gold-soft">
+          <div className="flex items-center gap-3 pb-3 mb-5 border-b border-gold/15">
+            <span className="flex items-center justify-center border rounded-lg h-9 w-9 border-gold/30 bg-gold/10 text-gold-soft">
               ⚙️
             </span>
             <div>
-              <h2 className="font-display text-xl font-semibold text-neutral-100">
+              <h2 className="text-xl font-semibold font-display text-neutral-100">
                 Praktikum
               </h2>
               <p className="text-xs text-neutral-500">
@@ -108,22 +115,22 @@ export default function Pertemuan6() {
               <Link
                 key={p.id}
                 to={p.path}
-                className="card-hover group relative overflow-hidden rounded-xl border border-gold/15 bg-bg-elevated p-5"
+                className="relative p-5 overflow-hidden border card-hover group rounded-xl border-gold/15 bg-bg-elevated"
               >
-                <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gold/10 blur-2xl opacity-0 transition-opacity group-hover:opacity-100" />
+                <div className="absolute w-24 h-24 transition-opacity rounded-full opacity-0 pointer-events-none -right-8 -top-8 bg-gold/10 blur-2xl group-hover:opacity-100" />
 
                 <span className="inline-block rounded-full border border-gold/25 bg-bg-card px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-gold-soft">
                   {p.tag}
                 </span>
 
-                <h3 className="mt-3 font-display text-lg font-semibold text-neutral-100">
+                <h3 className="mt-3 text-lg font-semibold font-display text-neutral-100">
                   {p.title}
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-neutral-400">
                   {p.desc}
                 </p>
 
-                <div className="mt-4 flex items-center gap-2 text-xs font-medium text-gold-soft">
+                <div className="flex items-center gap-2 mt-4 text-xs font-medium text-gold-soft">
                   Buka Praktikum
                   <svg
                     className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1"
@@ -146,12 +153,12 @@ export default function Pertemuan6() {
 
         {/* SECTION: TUGAS */}
         <section className="mb-12">
-          <div className="mb-5 flex items-center gap-3 border-b border-gold/15 pb-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-gold/30 bg-gold/10 text-gold-soft">
+          <div className="flex items-center gap-3 pb-3 mb-5 border-b border-gold/15">
+            <span className="flex items-center justify-center border rounded-lg h-9 w-9 border-gold/30 bg-gold/10 text-gold-soft">
               📝
             </span>
             <div>
-              <h2 className="font-display text-xl font-semibold text-neutral-100">
+              <h2 className="text-xl font-semibold font-display text-neutral-100">
                 Tugas
               </h2>
               <p className="text-xs text-neutral-500">
@@ -165,22 +172,22 @@ export default function Pertemuan6() {
               <Link
                 key={t.id}
                 to={t.path}
-                className="card-hover group relative overflow-hidden rounded-xl border border-gold/15 bg-bg-elevated p-5"
+                className="relative p-5 overflow-hidden border card-hover group rounded-xl border-gold/15 bg-bg-elevated"
               >
-                <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gold/10 blur-2xl opacity-0 transition-opacity group-hover:opacity-100" />
+                <div className="absolute w-24 h-24 transition-opacity rounded-full opacity-0 pointer-events-none -right-8 -top-8 bg-gold/10 blur-2xl group-hover:opacity-100" />
 
                 <span className="inline-block rounded-full border border-gold/25 bg-bg-card px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-gold-soft">
                   {t.tag}
                 </span>
 
-                <h3 className="mt-3 font-display text-lg font-semibold text-neutral-100">
+                <h3 className="mt-3 text-lg font-semibold font-display text-neutral-100">
                   {t.title}
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-neutral-400">
                   {t.desc}
                 </p>
 
-                <div className="mt-4 flex items-center gap-2 text-xs font-medium text-gold-soft">
+                <div className="flex items-center gap-2 mt-4 text-xs font-medium text-gold-soft">
                   Buka Tugas
                   <svg
                     className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1"
@@ -201,10 +208,10 @@ export default function Pertemuan6() {
           </div>
         </section>
 
-        <div className="mt-16 border-t border-gold/10 pt-6 text-center">
+        <div className="pt-6 mt-16 text-center border-t border-gold/10">
           <Link
             to="/"
-            className="text-sm text-neutral-500 transition-colors hover:text-gold-soft"
+            className="text-sm transition-colors text-neutral-500 hover:text-gold-soft"
           >
             ← Balik ke Home
           </Link>
