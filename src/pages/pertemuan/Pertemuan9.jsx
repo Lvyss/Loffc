@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import SlideViewer from "../../components/ui/SlideViewer"; // ✅ tambahkan import
 
 const praktikumList = [
   {
@@ -106,10 +107,25 @@ export default function Pertemuan9() {
             </span>
           </h1>
           <p className="max-w-2xl mt-3 text-sm leading-relaxed text-neutral-400">
-            Membangun aplikasi lengkap dengan login, pembagian hak akses
-            admin dan user, serta layout Blade yang dipakai bersama.
+            Membangun aplikasi lengkap dengan login, pembagian hak akses admin
+            dan user, serta layout Blade yang dipakai bersama.
           </p>
         </div>
+
+        {/* ✅ SECTION: SLIDE MATERI (BARU) */}
+        <section className="mb-12">
+          <h2 className="flex items-center gap-3 mb-4 text-xl font-semibold font-display text-neutral-100">
+            <span className="flex items-center justify-center border rounded-lg h-9 w-9 border-gold/30 bg-gold/10 text-gold-soft">
+              📊
+            </span>
+            Slide Materi
+          </h2>
+
+          <SlideViewer
+            pdf="/slides/pertemuan-9.pdf"
+            title="Pertemuan 9 — Layout, Session, Auth & Middleware"
+          />
+        </section>
 
         {/* PRAKTIKUM */}
         <section className="mb-12">
