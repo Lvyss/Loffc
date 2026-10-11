@@ -19,6 +19,7 @@ import Praktikum1P5 from "./pages/pertemuan/p5/Praktikum1";
 import TugasP5 from "./pages/pertemuan/p5/Tugas";
 import TugasPhpP6 from "./pages/pertemuan/p6/TugasPhp";
 import Praktikum1P9 from "./pages/pertemuan/p9/Praktikum1";
+import TugasP9 from "./pages/pertemuan/p9/Tugas";
 function HomePage() {
   return (
     <>
@@ -49,6 +50,7 @@ export default function App() {
           <Route path="/pertemuan/6/tugas-php" element={<TugasPhpP6 />} />
           <Route path="/pertemuan/9" element={<Pertemuan9 />} />
           <Route path="/pertemuan/9/praktikum-1" element={<Praktikum1P9 />} />
+          <Route path="/pertemuan/9/tugas" element={<TugasP9 />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

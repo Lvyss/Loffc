@@ -54,6 +54,6 @@ export const pertemuanData = [
     praktikum: [
       "Praktikum 3 — Perpustakaan Mini (Layout, Session, Auth, Middleware Role & CRUD Admin)",
     ],
-    tugas: [],
+    tugas: ["Tugas — FoodMart Dinamis: Home + Panel Admin"],
   },
 ];

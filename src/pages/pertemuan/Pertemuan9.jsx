@@ -11,8 +11,17 @@ const praktikumList = [
   },
 ];
 
+
 // Isi nanti kalau lembar tugas sudah ada
-const tugasList = [];
+const tugasList = [
+  {
+    id: 1,
+    title: "Tugas — FoodMart Dinamis",
+    desc: "Ubah template FoodMart jadi Home dinamis dengan panel admin: banner, kategori, produk, dan pengguna.",
+    tag: "Tugas · Project",
+    path: "/pertemuan/9/tugas",
+  },
+];
 
 function CardLink({ item, label }) {
   return (
