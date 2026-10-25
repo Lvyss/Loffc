@@ -56,4 +56,16 @@ export const pertemuanData = [
     ],
     tugas: ["Tugas — FoodMart Dinamis: Home + Panel Admin"],
   },
+  {
+  id: 10,
+  title: "Pertemuan 10",
+  topic: "Project Toko Mini: Auth, Middleware, CRUD Admin & Alur Customer",
+  praktikum: [
+    "Praktikum 1 — Fondasi Toko Mini (Database, Auth, Layout, Middleware)",
+    "Praktikum 2 — Admin Panel & Alur Customer (CRUD, Upload, Cart Session, Checkout)",
+  ],
+  tugas: [
+    "Tugas — Naik Level: Kupon Diskon / Form Dinamis JS / Tanggal Booking / Middleware Deadline",
+  ],
+},
 ];

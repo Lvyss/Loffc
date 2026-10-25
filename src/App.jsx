@@ -20,6 +20,9 @@ import TugasP5 from "./pages/pertemuan/p5/Tugas";
 import TugasPhpP6 from "./pages/pertemuan/p6/TugasPhp";
 import Praktikum1P9 from "./pages/pertemuan/p9/Praktikum1";
 import TugasP9 from "./pages/pertemuan/p9/Tugas";
+import Pertemuan10 from "./pages/pertemuan/Pertemuan10";
+import Praktikum1P10 from "./pages/pertemuan/p10/Praktikum1";
+import Praktikum2P10 from "./pages/pertemuan/p10/Praktikum2";
 function HomePage() {
   return (
     <>
@@ -41,8 +44,8 @@ export default function App() {
           <Route path="/pertemuan/3" element={<Pertemuan3 />} />
           <Route path="/pertemuan/4" element={<Pertemuan4 />} />
           <Route path="/pertemuan/5" element={<Pertemuan5 />} />
-<Route path="/pertemuan/5/praktikum-1" element={<Praktikum1P5 />} />
-<Route path="/pertemuan/5/tugas" element={<TugasP5 />} />
+          <Route path="/pertemuan/5/praktikum-1" element={<Praktikum1P5 />} />
+          <Route path="/pertemuan/5/tugas" element={<TugasP5 />} />
           <Route path="/pertemuan/6" element={<Pertemuan6 />} />
           <Route path="/pertemuan/6/praktikum-1" element={<Praktikum1P6 />} />
           <Route path="/pertemuan/6/praktikum-2" element={<Praktikum2P6 />} />
@@ -51,6 +54,9 @@ export default function App() {
           <Route path="/pertemuan/9" element={<Pertemuan9 />} />
           <Route path="/pertemuan/9/praktikum-1" element={<Praktikum1P9 />} />
           <Route path="/pertemuan/9/tugas" element={<TugasP9 />} />
+          <Route path="/pertemuan/10" element={<Pertemuan10 />} />
+          <Route path="/pertemuan/10/praktikum-1" element={<Praktikum1P10 />} />
+          <Route path="/pertemuan/10/praktikum-2" element={<Praktikum2P10 />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
