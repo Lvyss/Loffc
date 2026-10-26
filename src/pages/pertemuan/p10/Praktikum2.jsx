@@ -2,26 +2,26 @@ import { Link } from "react-router-dom";
 import CopyBlock from "../../../components/ui/CopyBlock";
 
 const struktur = `app/Http/Controllers/Admin/
-├── DashboardController.php
+├── DashboardController.php        ← statistik + pesanan terbaru
 ├── CategoryController.php
 ├── ItemController.php
 └── OrderController.php
 app/Http/Controllers/
 ├── CatalogController.php
-├── CartController.php
-├── CheckoutController.php
+├── CartController.php             ← 🆕 hitung preview diskon
+├── CheckoutController.php         ← 🆕 diskon via Order::calculateDiscount()
 └── OrderController.php
-routes/web.php                    ← versi final (B3)
+routes/web.php                     ← versi final (B3)
 resources/views/
-├── layouts/app.blade.php         ← versi final (B4)
-├── home.blade.php                ← katalog
+├── layouts/app.blade.php          ← versi final (B4)
+├── home.blade.php                 ← katalog
 ├── items/show.blade.php
-├── cart/index.blade.php
-├── orders/{index, show}.blade.php
+├── cart/index.blade.php           ← 🆕 baris subtotal & diskon
+├── orders/{index, show}.blade.php ← 🆕 show menampilkan diskon
 ├── admin/dashboard.blade.php
 ├── admin/categories/{index, edit}.blade.php
 ├── admin/items/{index, create, edit}.blade.php
-└── admin/orders/{index, show}.blade.php`;
+└── admin/orders/{index, show}.blade.php ← 🆕 show menampilkan diskon`;
 
 const steps = [
   {
@@ -297,7 +297,14 @@ class OrderController extends Controller
                 <tr>
                     <td>{{ $order->id }}</td>
                     <td>{{ $order->user->name }}</td>
-                    <td>Rp {{ number_format($order->total, 0, ',', '.') }}</td>
+                    <td>
+                        Rp {{ number_format($order->total, 0, ',', '.') }}
+                        @if ($order->discount > 0)
+                            <small class="text-success d-block">
+                                hemat Rp {{ number_format($order->discount, 0, ',', '.') }}
+                            </small>
+                        @endif
+                    </td>
                     <td><span class="badge bg-{{ $order->badgeColor() }}">{{ $order->status }}</span></td>
                     <td><a href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-outline-dark">Detail</a></td>
                 </tr>
@@ -310,26 +317,373 @@ class OrderController extends Controller
         label: "resources/views/admin/dashboard.blade.php",
       },
       {
-        text: "Kode lengkap view kategori, item, dan pesanan ada di panduan (subbagian A5). Salin apa adanya ke file masing-masing:",
-        code: `admin/categories/index.blade.php
-admin/categories/edit.blade.php
-admin/items/index.blade.php
-admin/items/create.blade.php
-admin/items/edit.blade.php
-admin/orders/index.blade.php
-admin/orders/show.blade.php`,
-        label: "daftar file",
+        text: "Isi `admin/categories/index.blade.php`:",
+        code: `@extends('layouts.app')
+
+@section('title', 'Kategori')
+
+@section('content')
+    <h3 class="mb-3">Kategori</h3>
+
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card"><div class="card-body">
+                <h6>Tambah Kategori</h6>
+                <form action="{{ route('admin.categories.store') }}" method="POST">
+                    @csrf
+                    <input type="text" name="name" value="{{ old('name') }}" placeholder="Nama kategori"
+                           class="form-control mb-2 @error('name') is-invalid @enderror">
+                    @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    <button class="btn btn-dark w-100 mt-2">Simpan</button>
+                </form>
+            </div></div>
+        </div>
+
+        <div class="col-md-8">
+            <table class="table table-bordered bg-white">
+                <thead><tr><th>Nama</th><th>Jumlah Item</th><th style="width:160px">Aksi</th></tr></thead>
+                <tbody>
+                    @forelse ($categories as $category)
+                        <tr>
+                            <td>{{ $category->name }}</td>
+                            <td>{{ $category->items_count }}</td>
+                            <td>
+                                <a href="{{ route('admin.categories.edit', $category) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                <form action="{{ route('admin.categories.destroy', $category) }}" method="POST" class="d-inline"
+                                      onsubmit="return confirm('Hapus kategori ini beserta itemnya?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="btn btn-sm btn-outline-danger">Hapus</button>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="3" class="text-center text-muted">Belum ada kategori.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+@endsection`,
+        label: "resources/views/admin/categories/index.blade.php",
+      },
+      {
+        text: "Isi `admin/categories/edit.blade.php`:",
+        code: `@extends('layouts.app')
+
+@section('title', 'Edit Kategori')
+
+@section('content')
+    <div class="col-md-5">
+        <h3 class="mb-3">Edit Kategori</h3>
+        <form action="{{ route('admin.categories.update', $category) }}" method="POST">
+            @csrf
+            @method('PUT')
+
+            <input type="text" name="name" value="{{ old('name', $category->name) }}"
+                   class="form-control mb-2 @error('name') is-invalid @enderror">
+            @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+
+            <button class="btn btn-dark mt-2">Update</button>
+            <a href="{{ route('admin.categories.index') }}" class="btn btn-secondary mt-2">Batal</a>
+        </form>
+    </div>
+@endsection`,
+        label: "resources/views/admin/categories/edit.blade.php",
+      },
+      {
+        text: "Isi `admin/items/index.blade.php`:",
+        code: `@extends('layouts.app')
+
+@section('title', 'Item')
+
+@section('content')
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">Item</h3>
+        <a href="{{ route('admin.items.create') }}" class="btn btn-dark">+ Tambah Item</a>
+    </div>
+
+    <table class="table table-bordered align-middle bg-white">
+        <thead>
+            <tr><th>Gambar</th><th>Nama</th><th>Kategori</th><th>Harga</th><th>Stok</th><th style="width:160px">Aksi</th></tr>
+        </thead>
+        <tbody>
+            @forelse ($items as $item)
+                <tr>
+                    <td style="width:90px">
+                        @if ($item->image)
+                            <img src="{{ asset('storage/' . $item->image) }}" class="img-thumbnail" style="height:60px">
+                        @else
+                            <span class="text-muted small">-</span>
+                        @endif
+                    </td>
+                    <td>{{ $item->name }}</td>
+                    <td>{{ $item->category->name }}</td>
+                    <td>Rp {{ number_format($item->price, 0, ',', '.') }}</td>
+                    <td>{{ $item->stock }}</td>
+                    <td>
+                        <a href="{{ route('admin.items.edit', $item) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                        <form action="{{ route('admin.items.destroy', $item) }}" method="POST" class="d-inline"
+                              onsubmit="return confirm('Hapus item ini?')">
+                            @csrf
+                            @method('DELETE')
+                            <button class="btn btn-sm btn-outline-danger">Hapus</button>
+                        </form>
+                    </td>
+                </tr>
+            @empty
+                <tr><td colspan="6" class="text-center text-muted">Belum ada item.</td></tr>
+            @endforelse
+        </tbody>
+    </table>
+@endsection`,
+        label: "resources/views/admin/items/index.blade.php",
+      },
+      {
+        text: "Isi `admin/items/create.blade.php`:",
+        code: `@extends('layouts.app')
+
+@section('title', 'Tambah Item')
+
+@section('content')
+    <div class="col-md-7">
+        <h3 class="mb-3">Tambah Item</h3>
+
+        {{-- enctype wajib untuk upload file --}}
+        <form action="{{ route('admin.items.store') }}" method="POST" enctype="multipart/form-data">
+            @csrf
+
+            <div class="mb-3">
+                <label class="form-label">Kategori</label>
+                <select name="category_id" class="form-select @error('category_id') is-invalid @enderror">
+                    <option value="">-- Pilih kategori --</option>
+                    @foreach ($categories as $category)
+                        <option value="{{ $category->id }}" @selected(old('category_id') == $category->id)>{{ $category->name }}</option>
+                    @endforeach
+                </select>
+                @error('category_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Nama</label>
+                <input type="text" name="name" value="{{ old('name') }}" class="form-control @error('name') is-invalid @enderror">
+                @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Deskripsi</label>
+                <textarea name="description" rows="3" class="form-control @error('description') is-invalid @enderror">{{ old('description') }}</textarea>
+                @error('description') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Harga (Rp)</label>
+                    <input type="number" name="price" value="{{ old('price') }}" class="form-control @error('price') is-invalid @enderror">
+                    @error('price') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Stok</label>
+                    <input type="number" name="stock" value="{{ old('stock', 0) }}" class="form-control @error('stock') is-invalid @enderror">
+                    @error('stock') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Gambar (opsional, maks 2 MB)</label>
+                <input type="file" name="image" class="form-control @error('image') is-invalid @enderror">
+                @error('image') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <button class="btn btn-dark">Simpan</button>
+            <a href="{{ route('admin.items.index') }}" class="btn btn-secondary">Batal</a>
+        </form>
+    </div>
+@endsection`,
+        label: "resources/views/admin/items/create.blade.php",
+      },
+      {
+        text: "Isi `admin/items/edit.blade.php`:",
+        code: `@extends('layouts.app')
+
+@section('title', 'Edit Item')
+
+@section('content')
+    <div class="col-md-7">
+        <h3 class="mb-3">Edit Item</h3>
+
+        <form action="{{ route('admin.items.update', $item) }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            @method('PUT')
+
+            <div class="mb-3">
+                <label class="form-label">Kategori</label>
+                <select name="category_id" class="form-select @error('category_id') is-invalid @enderror">
+                    @foreach ($categories as $category)
+                        <option value="{{ $category->id }}" @selected(old('category_id', $item->category_id) == $category->id)>{{ $category->name }}</option>
+                    @endforeach
+                </select>
+                @error('category_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Nama</label>
+                <input type="text" name="name" value="{{ old('name', $item->name) }}" class="form-control @error('name') is-invalid @enderror">
+                @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Deskripsi</label>
+                <textarea name="description" rows="3" class="form-control @error('description') is-invalid @enderror">{{ old('description', $item->description) }}</textarea>
+                @error('description') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Harga (Rp)</label>
+                    <input type="number" name="price" value="{{ old('price', $item->price) }}" class="form-control @error('price') is-invalid @enderror">
+                    @error('price') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Stok</label>
+                    <input type="number" name="stock" value="{{ old('stock', $item->stock) }}" class="form-control @error('stock') is-invalid @enderror">
+                    @error('stock') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Gambar</label>
+                @if ($item->image)
+                    <div class="mb-2"><img src="{{ asset('storage/' . $item->image) }}" class="img-thumbnail" style="height:100px"></div>
+                @endif
+                <input type="file" name="image" class="form-control @error('image') is-invalid @enderror">
+                <div class="form-text">Kosongkan jika tidak ingin mengganti gambar.</div>
+                @error('image') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <button class="btn btn-dark">Update</button>
+            <a href="{{ route('admin.items.index') }}" class="btn btn-secondary">Batal</a>
+        </form>
+    </div>
+@endsection`,
+        label: "resources/views/admin/items/edit.blade.php",
+      },
+      {
+        text: "Isi `admin/orders/index.blade.php` — 🆕 tampilkan nominal diskon di kolom total:",
+        code: `@extends('layouts.app')
+
+@section('title', 'Pesanan')
+
+@section('content')
+    <h3 class="mb-3">Semua Pesanan</h3>
+
+    <table class="table table-bordered align-middle bg-white">
+        <thead><tr><th>#</th><th>Customer</th><th>Tanggal</th><th>Total</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+            @forelse ($orders as $order)
+                <tr>
+                    <td>{{ $order->id }}</td>
+                    <td>{{ $order->user->name }}</td>
+                    <td>{{ $order->created_at->format('d M Y H:i') }}</td>
+                    <td>
+                        Rp {{ number_format($order->total, 0, ',', '.') }}
+                        @if ($order->discount > 0)
+                            <small class="text-success d-block">
+                                hemat Rp {{ number_format($order->discount, 0, ',', '.') }}
+                            </small>
+                        @endif
+                    </td>
+                    <td><span class="badge bg-{{ $order->badgeColor() }}">{{ $order->status }}</span></td>
+                    <td><a href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-outline-dark">Detail</a></td>
+                </tr>
+            @empty
+                <tr><td colspan="6" class="text-center text-muted">Belum ada pesanan.</td></tr>
+            @endforelse
+        </tbody>
+    </table>
+@endsection`,
+        label: "resources/views/admin/orders/index.blade.php",
+      },
+      {
+        text: "Isi `admin/orders/show.blade.php` — 🆕 tfoot tiga baris (subtotal, diskon, total):",
+        code: `@extends('layouts.app')
+
+@section('title', 'Detail Pesanan')
+
+@section('content')
+    <h3 class="mb-3">Pesanan #{{ $order->id }}</h3>
+
+    <div class="row g-4">
+        <div class="col-md-8">
+            <table class="table table-bordered bg-white">
+                <thead><tr><th>Item</th><th>Harga</th><th>Qty</th><th>Subtotal</th></tr></thead>
+                <tbody>
+                    @foreach ($order->orderItems as $row)
+                        <tr>
+                            <td>{{ $row->item->name }}</td>
+                            <td>Rp {{ number_format($row->price, 0, ',', '.') }}</td>
+                            <td>{{ $row->qty }}</td>
+                            <td>Rp {{ number_format($row->price * $row->qty, 0, ',', '.') }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="3" class="text-end">Subtotal</th>
+                        <th>Rp {{ number_format($order->subtotal, 0, ',', '.') }}</th>
+                    </tr>
+                    @if ($order->discount > 0)
+                        <tr class="text-success">
+                            <th colspan="3" class="text-end">Diskon</th>
+                            <th>− Rp {{ number_format($order->discount, 0, ',', '.') }}</th>
+                        </tr>
+                    @endif
+                    <tr>
+                        <th colspan="3" class="text-end">Total</th>
+                        <th>Rp {{ number_format($order->total, 0, ',', '.') }}</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-3"><div class="card-body">
+                <p class="mb-1"><strong>{{ $order->user->name }}</strong></p>
+                <p class="mb-1 text-muted">{{ $order->user->email }}</p>
+                <p class="mb-0 text-muted">{{ $order->created_at->format('d M Y H:i') }}</p>
+            </div></div>
+
+            <div class="card"><div class="card-body">
+                <h6>Ubah Status</h6>
+                <form action="{{ route('admin.orders.update', $order) }}" method="POST">
+                    @csrf
+                    @method('PATCH')
+                    <select name="status" class="form-select mb-2">
+                        @foreach (['pending', 'diproses', 'selesai'] as $status)
+                            <option value="{{ $status }}" @selected($order->status === $status)>{{ ucfirst($status) }}</option>
+                        @endforeach
+                    </select>
+                    <button class="btn btn-dark w-100">Simpan Status</button>
+                </form>
+            </div></div>
+
+            <a href="{{ route('admin.orders.index') }}" class="btn btn-link mt-2">&larr; Kembali</a>
+        </div>
+    </div>
+@endsection`,
+        label: "resources/views/admin/orders/show.blade.php",
       },
     ],
-    tip: "Form tambah item WAJIB punya `enctype=\"multipart/form-data\"`. Form update ganti gambar juga sama. Tanpa itu file tidak terkirim dan $request->hasFile('image') selalu false.",
+    tip: "Form tambah item WAJIB punya enctype='multipart/form-data'. Form update ganti gambar juga sama. Tanpa itu file tidak terkirim dan $request->hasFile('image') selalu false.",
   },
   {
     no: "03",
-    title: "Controller Customer (Catalog, Cart, Checkout, Order)",
+    title:
+      "Controller Customer (Catalog, Cart 🆕 Diskon, Checkout 🆕 Diskon, Order)",
     fungsi:
-      "Katalog publik, keranjang di session, checkout dengan DB::transaction, riwayat pesanan customer.",
+      "Katalog publik, keranjang di session dengan preview diskon, checkout dengan DB::transaction + diskon, riwayat pesanan customer.",
     kenapa:
-      "Cart disimpan di session `[item_id => qty]` supaya tidak perlu tabel keranjang. Checkout memakai transaction: kalau satu langkah gagal (stok kurang), semua dibatalkan. lockForUpdate mencegah dua orang membeli stok terakhir bersamaan.",
+      "Cart disimpan di session [item_id => qty] supaya tidak perlu tabel keranjang. 🆕 Aturan diskon memakai satu sumber kebenaran: Order::calculateDiscount(). Checkout memakai transaction: kalau satu langkah gagal (stok kurang), semua dibatalkan. lockForUpdate mencegah dua orang membeli stok terakhir bersamaan.",
     actions: [
       {
         text: "Isi `CatalogController.php` — katalog + filter kategori + detail:",
@@ -364,12 +718,13 @@ class CatalogController extends Controller
         label: "app/Http/Controllers/CatalogController.php",
       },
       {
-        text: "Isi `CartController.php` — session cart (add, update, destroy):",
+        text: "Isi `CartController.php` — 🆕 method index() menghitung subtotal, diskon, total (preview sebelum checkout):",
         code: `<?php
 
 namespace App\\Http\\Controllers;
 
 use App\\Models\\Item;
+use App\\Models\\Order;
 use Illuminate\\Http\\Request;
 
 class CartController extends Controller
@@ -380,19 +735,23 @@ class CartController extends Controller
         $items = Item::whereIn('id', array_keys($cart))->get()->keyBy('id');
 
         $rows = [];
-        $total = 0;
+        $subtotal = 0;
 
         foreach ($cart as $id => $qty) {
             if (! isset($items[$id])) {
-                continue;
+                continue; // item sudah dihapus admin
             }
             $item = $items[$id];
-            $subtotal = $item->price * $qty;
-            $total += $subtotal;
-            $rows[] = compact('item', 'qty', 'subtotal');
+            $sub = $item->price * $qty;
+            $subtotal += $sub;
+            $rows[] = ['item' => $item, 'qty' => $qty, 'subtotal' => $sub];
         }
 
-        return view('cart.index', compact('rows', 'total'));
+        // 🆕 Hitung preview diskon memakai aturan yang SAMA dengan checkout
+        $discount = Order::calculateDiscount($subtotal);
+        $total    = $subtotal - $discount;
+
+        return view('cart.index', compact('rows', 'subtotal', 'discount', 'total'));
     }
 
     public function add(Request $request, Item $item)
@@ -440,7 +799,7 @@ class CartController extends Controller
         label: "app/Http/Controllers/CartController.php",
       },
       {
-        text: "Isi `CheckoutController.php` — DB::transaction + lockForUpdate:",
+        text: "Isi `CheckoutController.php` — 🆕 pakai Order::calculateDiscount() sebelum simpan order:",
         code: `<?php
 
 namespace App\\Http\\Controllers;
@@ -462,20 +821,26 @@ class CheckoutController extends Controller
         try {
             $order = DB::transaction(function () use ($cart) {
                 $items = Item::whereIn('id', array_keys($cart))->lockForUpdate()->get()->keyBy('id');
-                $total = 0;
+                $subtotal = 0;
 
                 foreach ($cart as $id => $qty) {
                     $item = $items[$id] ?? null;
                     if (! $item || $item->stock < $qty) {
                         throw new \\RuntimeException('Stok ' . ($item->name ?? 'salah satu item') . ' tidak mencukupi.');
                     }
-                    $total += $item->price * $qty;
+                    $subtotal += $item->price * $qty;
                 }
 
+                // 🆕 Hitung diskon dari subtotal (belanja sebelum diskon)
+                $discount = Order::calculateDiscount($subtotal);
+                $total    = $subtotal - $discount;
+
                 $order = Order::create([
-                    'user_id' => auth()->id(),
-                    'total'   => $total,
-                    'status'  => 'pending',
+                    'user_id'  => auth()->id(),
+                    'subtotal' => $subtotal,
+                    'discount' => $discount,
+                    'total'    => $total,
+                    'status'   => 'pending',
                 ]);
 
                 foreach ($cart as $id => $qty) {
@@ -538,7 +903,7 @@ class OrderController extends Controller
     kenapa: "Satu file route untuk semua fase — mudah dibaca, mudah diaudit.",
     actions: [
       {
-        text: "Ganti seluruh `routes/web.php` dengan versi B3 (ada grup `role:customer` dan `role:admin`):",
+        text: "Ganti seluruh `routes/web.php` dengan versi final:",
         code: `<?php
 
 use App\\Http\\Controllers\\Admin;
@@ -585,40 +950,67 @@ Route::middleware('auth')->group(function () {
         label: "routes/web.php",
       },
       {
-        text: "Ganti seluruh `layouts/app.blade.php` dengan versi B4 (navbar punya cabang admin vs customer):",
-        code: `{{-- navbar --}}
-<ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
-    <li class="nav-item"><a class="nav-link" href="{{ route('home') }}">Katalog</a></li>
+        text: "Ganti seluruh `layouts/app.blade.php` dengan versi final (navbar punya cabang admin vs customer):",
+        code: `<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>@yield('title') - {{ config('app.name') }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
 
-    @auth
-        @if(auth()->user()->isAdmin())
-            <li class="nav-item"><a class="nav-link" href="{{ route('admin.dashboard') }}">Dashboard</a></li>
-            <li class="nav-item"><a class="nav-link" href="{{ route('admin.categories.index') }}">Kategori</a></li>
-            <li class="nav-item"><a class="nav-link" href="{{ route('admin.items.index') }}">Item</a></li>
-            <li class="nav-item"><a class="nav-link" href="{{ route('admin.orders.index') }}">Pesanan</a></li>
-        @else
-            <li class="nav-item">
-                <a class="nav-link" href="{{ route('cart.index') }}">
-                    Keranjang <span class="badge bg-warning text-dark">{{ collect(session('cart', []))->sum() }}</span>
-                </a>
-            </li>
-            <li class="nav-item"><a class="nav-link" href="{{ route('orders.index') }}">Pesanan Saya</a></li>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ route('home') }}">{{ config('app.name') }}</a>
+
+            <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+                <li class="nav-item"><a class="nav-link" href="{{ route('home') }}">Katalog</a></li>
+
+                @auth
+                    @if(auth()->user()->isAdmin())
+                        <li class="nav-item"><a class="nav-link" href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ route('admin.categories.index') }}">Kategori</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ route('admin.items.index') }}">Item</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ route('admin.orders.index') }}">Pesanan</a></li>
+                    @else
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('cart.index') }}">
+                                Keranjang <span class="badge bg-warning text-dark">{{ collect(session('cart', []))->sum() }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item"><a class="nav-link" href="{{ route('orders.index') }}">Pesanan Saya</a></li>
+                    @endif
+
+                    <li class="nav-item"><a class="nav-link" href="{{ route('account') }}">{{ auth()->user()->name }}</a></li>
+                    <li class="nav-item">
+                        <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                            @csrf
+                            <button class="btn btn-outline-light btn-sm">Logout</button>
+                        </form>
+                    </li>
+                @else
+                    <li class="nav-item"><a class="nav-link" href="{{ route('login') }}">Login</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('register') }}">Register</a></li>
+                @endauth
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container py-4">
+        @if (session('success'))
+            <div class="alert alert-success">{{ session('success') }}</div>
+        @endif
+        @if (session('error'))
+            <div class="alert alert-danger">{{ session('error') }}</div>
         @endif
 
-        <li class="nav-item"><a class="nav-link" href="{{ route('account') }}">{{ auth()->user()->name }}</a></li>
-        <li class="nav-item">
-            <form action="{{ route('logout') }}" method="POST" class="d-inline">
-                @csrf
-                <button class="btn btn-outline-light btn-sm">Logout</button>
-            </form>
-        </li>
-    @else
-        <li class="nav-item"><a class="nav-link" href="{{ route('login') }}">Login</a></li>
-        <li class="nav-item"><a class="nav-link" href="{{ route('register') }}">Register</a></li>
-    @endauth
-</ul>
+        @yield('content')
+    </main>
 
-{{-- full layout tetap seperti di Praktikum 1, cuma blok navbar ini yang diganti --}}`,
+</body>
+</html>`,
         label: "resources/views/layouts/app.blade.php",
       },
     ],
@@ -626,39 +1018,267 @@ Route::middleware('auth')->group(function () {
   },
   {
     no: "05",
-    title: "View Customer (Katalog, Detail, Cart, Orders)",
-    fungsi:
-      "5 view customer: home (katalog), items/show, cart/index, orders/index, orders/show.",
+    title: "View Customer (Katalog, Detail, Cart 🆕 Diskon, Orders 🆕 Diskon)",
+    fungsi: "5 view customer dengan preview & rekam diskon.",
     kenapa:
-      "Tombol beli hanya muncul jika user login dan role customer. Admin tidak bisa belanja. Guest diarahkan ke login, bukan form POST (kalau form POST, kena 405).",
+      "Tombol beli hanya muncul jika user login dan role customer. Admin tidak bisa belanja. Guest diarahkan ke login, bukan form POST (kalau form POST, kena 405). 🆕 Diskon tampil di cart sebelum checkout, dan di riwayat pesanan setelah checkout.",
     actions: [
       {
-        text: "Kode lengkap kelima view ada di panduan subbagian B5. Salin sesuai nama filenya:",
-        code: `resources/views/home.blade.php          ← katalog + filter kategori
-resources/views/items/show.blade.php    ← detail + tombol add to cart
-resources/views/cart/index.blade.php    ← tabel qty + subtotal + checkout
-resources/views/orders/index.blade.php  ← riwayat pesanan
-resources/views/orders/show.blade.php   ← detail pesanan`,
-        label: "daftar file",
+        text: "Isi `home.blade.php` — katalog + filter kategori + promo diskon:",
+        code: `@extends('layouts.app')
+
+@section('title', 'Katalog')
+
+@section('content')
+    <h3 class="mb-3">Katalog</h3>
+
+    <div class="alert alert-info py-2">
+        🎉 <strong>Promo:</strong> belanja minimal Rp 20.000 dapat diskon 10% (otomatis saat checkout).
+    </div>
+
+    <div class="mb-4">
+        <a href="{{ route('home') }}" class="btn btn-sm {{ request('category') ? 'btn-outline-dark' : 'btn-dark' }}">Semua</a>
+        @foreach ($categories as $category)
+            <a href="{{ route('home', ['category' => $category->id]) }}"
+               class="btn btn-sm {{ request('category') == $category->id ? 'btn-dark' : 'btn-outline-dark' }}">
+                {{ $category->name }}
+            </a>
+        @endforeach
+    </div>
+
+    <div class="row row-cols-2 row-cols-md-4 g-3">
+        @forelse ($items as $item)
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    @if ($item->image)
+                        <img src="{{ asset('storage/' . $item->image) }}" class="card-img-top" style="height:160px; object-fit:cover">
+                    @else
+                        <div class="bg-secondary-subtle d-flex align-items-center justify-content-center text-muted" style="height:160px">Tanpa gambar</div>
+                    @endif
+
+                    <div class="card-body">
+                        <small class="text-muted">{{ $item->category->name }}</small>
+                        <h6 class="card-title mb-1">{{ $item->name }}</h6>
+                        <div class="fw-bold">Rp {{ number_format($item->price, 0, ',', '.') }}</div>
+                        <small class="{{ $item->stock > 0 ? 'text-muted' : 'text-danger' }}">
+                            {{ $item->stock > 0 ? 'Stok: ' . $item->stock : 'Stok habis' }}
+                        </small>
+                    </div>
+
+                    <div class="card-footer bg-white border-0 pt-0">
+                        <a href="{{ route('items.show', $item) }}" class="btn btn-sm btn-outline-dark w-100">Lihat Detail</a>
+                    </div>
+                </div>
+            </div>
+        @empty
+            <p class="text-muted">Belum ada item.</p>
+        @endforelse
+    </div>
+@endsection`,
+        label: "resources/views/home.blade.php",
       },
       {
-        text: "Poin penting di `items/show.blade.php`: cabang guest / admin / customer.",
-        code: `@if ($item->stock > 0)
-    @auth
-        @if (auth()->user()->role === 'customer')
-            <form action="{{ route('cart.add', $item) }}" method="POST" class="d-flex gap-2" style="max-width:260px">
-                @csrf
-                <input type="number" name="qty" value="1" min="1" max="{{ $item->stock }}" class="form-control">
-                <button class="btn btn-dark text-nowrap">+ Keranjang</button>
-            </form>
-        @else
-            <p class="text-muted fst-italic">Admin tidak bisa berbelanja.</p>
-        @endif
+        text: "Isi `items/show.blade.php` — detail + tombol add to cart (cabang guest / admin / customer):",
+        code: `@extends('layouts.app')
+
+@section('title', $item->name)
+
+@section('content')
+    <div class="row g-4">
+        <div class="col-md-5">
+            @if ($item->image)
+                <img src="{{ asset('storage/' . $item->image) }}" class="img-fluid rounded">
+            @else
+                <div class="bg-secondary-subtle rounded d-flex align-items-center justify-content-center text-muted" style="height:300px">Tanpa gambar</div>
+            @endif
+        </div>
+
+        <div class="col-md-7">
+            <small class="text-muted">{{ $item->category->name }}</small>
+            <h3>{{ $item->name }}</h3>
+            <h4 class="mb-3">Rp {{ number_format($item->price, 0, ',', '.') }}</h4>
+            <p>{{ $item->description ?: 'Tidak ada deskripsi.' }}</p>
+            <p class="{{ $item->stock > 0 ? 'text-muted' : 'text-danger' }}">
+                {{ $item->stock > 0 ? 'Stok tersedia: ' . $item->stock : 'Stok habis' }}
+            </p>
+
+            @if ($item->stock > 0)
+                @auth
+                    @if (auth()->user()->role === 'customer')
+                        <form action="{{ route('cart.add', $item) }}" method="POST" class="d-flex gap-2" style="max-width:260px">
+                            @csrf
+                            <input type="number" name="qty" value="1" min="1" max="{{ $item->stock }}" class="form-control">
+                            <button class="btn btn-dark text-nowrap">+ Keranjang</button>
+                        </form>
+                        <p class="text-muted small mt-2 mb-0">🎉 Belanja ≥ Rp 20.000 dapat diskon 10% saat checkout.</p>
+                    @else
+                        <p class="text-muted fst-italic">Admin tidak bisa berbelanja.</p>
+                    @endif
+                @else
+                    <a href="{{ route('login') }}" class="btn btn-dark">Login untuk membeli</a>
+                @endauth
+            @endif
+
+            <div class="mt-3"><a href="{{ route('home') }}">&larr; Kembali ke katalog</a></div>
+        </div>
+    </div>
+@endsection`,
+        label: "resources/views/items/show.blade.php",
+      },
+      {
+        text: "Isi `cart/index.blade.php` — 🆕 tfoot 3 baris (subtotal, diskon, total) + info threshold:",
+        code: `@extends('layouts.app')
+
+@section('title', 'Keranjang')
+
+@section('content')
+    <h3 class="mb-3">Keranjang Belanja</h3>
+
+    @if (count($rows) === 0)
+        <div class="alert alert-secondary">Keranjang masih kosong. <a href="{{ route('home') }}">Belanja dulu</a>.</div>
     @else
-        <a href="{{ route('login') }}" class="btn btn-dark">Login untuk membeli</a>
-    @endauth
-@endif`,
-        label: "items/show.blade.php (potongan)",
+        <table class="table table-bordered align-middle bg-white">
+            <thead><tr><th>Item</th><th>Harga</th><th style="width:200px">Qty</th><th>Subtotal</th><th></th></tr></thead>
+            <tbody>
+                @foreach ($rows as $row)
+                    <tr>
+                        <td>{{ $row['item']->name }}</td>
+                        <td>Rp {{ number_format($row['item']->price, 0, ',', '.') }}</td>
+                        <td>
+                            <form action="{{ route('cart.update', $row['item']) }}" method="POST" class="d-flex gap-1">
+                                @csrf
+                                @method('PATCH')
+                                <input type="number" name="qty" value="{{ $row['qty'] }}" min="1" max="{{ $row['item']->stock }}" class="form-control form-control-sm">
+                                <button class="btn btn-sm btn-outline-primary">Ubah</button>
+                            </form>
+                        </td>
+                        <td>Rp {{ number_format($row['subtotal'], 0, ',', '.') }}</td>
+                        <td>
+                            <form action="{{ route('cart.destroy', $row['item']) }}" method="POST">
+                                @csrf
+                                @method('DELETE')
+                                <button class="btn btn-sm btn-outline-danger">Hapus</button>
+                            </form>
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="3" class="text-end">Subtotal</th>
+                    <th colspan="2">Rp {{ number_format($subtotal, 0, ',', '.') }}</th>
+                </tr>
+
+                @if ($discount > 0)
+                    <tr class="text-success">
+                        <th colspan="3" class="text-end">Diskon 10%</th>
+                        <th colspan="2">− Rp {{ number_format($discount, 0, ',', '.') }}</th>
+                    </tr>
+                @else
+                    <tr>
+                        <td colspan="5" class="text-end small text-muted">
+                            Tambah Rp {{ number_format(20000 - $subtotal, 0, ',', '.') }} lagi untuk dapat diskon 10%.
+                        </td>
+                    </tr>
+                @endif
+
+                <tr>
+                    <th colspan="3" class="text-end">Total</th>
+                    <th colspan="2">Rp {{ number_format($total, 0, ',', '.') }}</th>
+                </tr>
+            </tfoot>
+        </table>
+
+        <form action="{{ route('checkout') }}" method="POST" class="text-end">
+            @csrf
+            <a href="{{ route('home') }}" class="btn btn-outline-dark">Lanjut Belanja</a>
+            <button class="btn btn-success">Checkout</button>
+        </form>
+    @endif
+@endsection`,
+        label: "resources/views/cart/index.blade.php",
+      },
+      {
+        text: "Isi `orders/index.blade.php` — riwayat, 🆕 tampilkan nominal hemat di total:",
+        code: `@extends('layouts.app')
+
+@section('title', 'Pesanan Saya')
+
+@section('content')
+    <h3 class="mb-3">Pesanan Saya</h3>
+
+    <table class="table table-bordered align-middle bg-white">
+        <thead><tr><th>#</th><th>Tanggal</th><th>Total</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+            @forelse ($orders as $order)
+                <tr>
+                    <td>{{ $order->id }}</td>
+                    <td>{{ $order->created_at->format('d M Y H:i') }}</td>
+                    <td>
+                        Rp {{ number_format($order->total, 0, ',', '.') }}
+                        @if ($order->discount > 0)
+                            <small class="text-success d-block">
+                                hemat Rp {{ number_format($order->discount, 0, ',', '.') }}
+                            </small>
+                        @endif
+                    </td>
+                    <td><span class="badge bg-{{ $order->badgeColor() }}">{{ $order->status }}</span></td>
+                    <td><a href="{{ route('orders.show', $order) }}" class="btn btn-sm btn-outline-dark">Detail</a></td>
+                </tr>
+            @empty
+                <tr><td colspan="5" class="text-center text-muted">Kamu belum pernah memesan.</td></tr>
+            @endforelse
+        </tbody>
+    </table>
+@endsection`,
+        label: "resources/views/orders/index.blade.php",
+      },
+      {
+        text: "Isi `orders/show.blade.php` — 🆕 tfoot 3 baris (subtotal, diskon, total):",
+        code: `@extends('layouts.app')
+
+@section('title', 'Detail Pesanan')
+
+@section('content')
+    <h3 class="mb-1">Pesanan #{{ $order->id }}</h3>
+    <p class="text-muted">
+        {{ $order->created_at->format('d M Y H:i') }} &middot;
+        <span class="badge bg-{{ $order->badgeColor() }}">{{ $order->status }}</span>
+    </p>
+
+    <table class="table table-bordered bg-white">
+        <thead><tr><th>Item</th><th>Harga</th><th>Qty</th><th>Subtotal</th></tr></thead>
+        <tbody>
+            @foreach ($order->orderItems as $row)
+                <tr>
+                    <td>{{ $row->item->name }}</td>
+                    <td>Rp {{ number_format($row->price, 0, ',', '.') }}</td>
+                    <td>{{ $row->qty }}</td>
+                    <td>Rp {{ number_format($row->price * $row->qty, 0, ',', '.') }}</td>
+                </tr>
+            @endforeach
+        </tbody>
+        <tfoot>
+            <tr>
+                <th colspan="3" class="text-end">Subtotal</th>
+                <th>Rp {{ number_format($order->subtotal, 0, ',', '.') }}</th>
+            </tr>
+            @if ($order->discount > 0)
+                <tr class="text-success">
+                    <th colspan="3" class="text-end">Diskon</th>
+                    <th>− Rp {{ number_format($order->discount, 0, ',', '.') }}</th>
+                </tr>
+            @endif
+            <tr>
+                <th colspan="3" class="text-end">Total</th>
+                <th>Rp {{ number_format($order->total, 0, ',', '.') }}</th>
+            </tr>
+        </tfoot>
+    </table>
+
+    <a href="{{ route('orders.index') }}">&larr; Semua pesanan</a>
+@endsection`,
+        label: "resources/views/orders/show.blade.php",
       },
     ],
     tip: "Guest klik 'Login untuk membeli' → link GET ke /login. Kalau dibuat form POST ke cart.add, middleware role:customer akan balas 403, bukan redirect ke login.",
@@ -678,11 +1298,11 @@ php artisan serve`,
         label: "bash",
       },
       {
-        text: "Uji checklist Bagian A (login admin) lalu Bagian B (login customer). Detail di bawah.",
+        text: "Uji checklist Bagian A (login admin) lalu Bagian B (login customer), termasuk skenario diskon.",
         bukti: true,
       },
     ],
-    tip: "Kalau gambar tidak tampil padahal upload sukses: cek `storage:link` (folder public/storage ada?) dan `APP_URL` di .env.",
+    tip: "Kalau gambar tidak tampil padahal upload sukses: cek storage:link (folder public/storage ada?) dan APP_URL di .env.",
   },
 ];
 
@@ -706,20 +1326,39 @@ const checklistA = [
   },
   { text: "Login Budi, buka /admin/items", detail: "403." },
   { text: "Buka /admin/orders", detail: "'Belum ada pesanan'." },
+  {
+    text: "🆕 Setelah ada order ≥ 20rb, buka /admin/orders",
+    detail: "Kolom total menampilkan 'hemat Rp ...' di bawah angka total.",
+  },
+  {
+    text: "🆕 Buka detail order yang ada diskon",
+    detail: "Tfoot: Subtotal / Diskon / Total.",
+  },
 ];
 
 const checklistB = [
   {
     text: "Buka / tanpa login",
-    detail: "Katalog tampil dengan gambar, harga, stok.",
+    detail: "Katalog tampil, ada banner promo diskon.",
   },
   {
     text: "Klik filter kategori",
     detail: "URL berubah ?category=1, item terfilter.",
   },
   { text: "Detail item tanpa login", detail: "Tombol 'Login untuk membeli'." },
-  { text: "Login Budi, buka detail item", detail: "Form qty + '+ Keranjang'." },
-  { text: "Tambah item", detail: "Badge navbar naik, flash hijau." },
+  {
+    text: "Login Budi, buka detail item",
+    detail: "Form qty + '+ Keranjang' + info promo.",
+  },
+  {
+    text: "Tambah item (belum capai 20rb)",
+    detail:
+      "Badge navbar naik, cart menampilkan 'Tambah Rp ... lagi untuk diskon'.",
+  },
+  {
+    text: "🆕 Total belanja ≥ 20rb, buka /cart",
+    detail: "Baris 'Diskon 10% − Rp ...' muncul; total = subtotal − diskon.",
+  },
   {
     text: "Tambah qty melebihi stok",
     detail: "Flash merah 'Stok hanya tersisa...'.",
@@ -729,7 +1368,15 @@ const checklistB = [
     detail: "Subtotal & total selalu benar.",
   },
   { text: "Refresh /cart", detail: "Isi keranjang tetap (di session)." },
-  { text: "Checkout", detail: "Redirect ke detail pesanan, badge jadi 0." },
+  {
+    text: "🆕 Checkout dengan belanja ≥ 20rb",
+    detail:
+      "Redirect ke detail pesanan, tampil Subtotal/Diskon/Total, badge cart jadi 0.",
+  },
+  {
+    text: "🆕 Buka /orders (Pesanan Saya)",
+    detail: "Ada keterangan 'hemat Rp ...' di bawah total.",
+  },
   { text: "Admin buka /admin/items", detail: "Stok item sudah berkurang." },
   {
     text: "Admin ubah status pesanan",
@@ -744,14 +1391,6 @@ const checklistB = [
 ];
 
 export default function Praktikum2() {
-  // Struktur JSX sama seperti Praktikum1:
-  // - breadcrumb (Home / Pertemuan 10 / Praktikum 2)
-  // - header badge "Pertemuan 10 · Praktikum 2"
-  // - section "Alur" dengan steps[]
-  // - dua section checklist: "Checklist Bagian A (Admin)" dan "Checklist Bagian B (Customer)"
-  // - footer navigasi: ← Praktikum 1 | Lanjut ke Tugas →
-  //
-  // Salin pola JSX dari Praktikum1 dan ganti judul checklist & data.
   return (
     <div className="relative min-h-screen">
       <div className="pointer-events-none absolute left-1/2 top-0 h-64 w-[40rem] -translate-x-1/2 rounded-full bg-gold/10 blur-[120px]" />
@@ -775,14 +1414,24 @@ export default function Praktikum2() {
           </span>
           <h1 className="mt-4 text-4xl font-bold leading-tight font-display md:text-5xl">
             <span className="gold-gradient-text">
-              Admin Panel & Alur Customer
+              Admin Panel, Alur Customer & Diskon
             </span>
           </h1>
           <p className="max-w-2xl mt-3 text-sm leading-relaxed text-neutral-400">
             Bagian A: CRUD kategori & item + upload, kelola pesanan. Bagian B:
-            katalog, keranjang session, checkout dengan transaction, riwayat
-            pesanan.
+            katalog, keranjang session dengan 🆕 preview diskon, checkout dengan
+            🆕 Order::calculateDiscount(), riwayat pesanan yang menampilkan
+            potongan.
           </p>
+
+          <div className="flex flex-wrap gap-2 mt-5">
+            <span className="px-3 py-1 text-xs border rounded-full border-gold/20 bg-bg-elevated text-neutral-300">
+              🎁 Diskon: subtotal ≥ Rp 20.000 → potongan 10%
+            </span>
+            <span className="px-3 py-1 text-xs border rounded-full border-gold/20 bg-bg-elevated text-neutral-300">
+              🔒 Satu sumber aturan: `Order::calculateDiscount()`
+            </span>
+          </div>
         </div>
 
         <section className="mb-10">
@@ -901,7 +1550,7 @@ export default function Praktikum2() {
             <span className="flex items-center justify-center border rounded-lg h-9 w-9 border-gold/30 bg-gold/10 text-gold-soft">
               🛒
             </span>
-            Checklist Bagian B — Customer
+            Checklist Bagian B — Customer (dengan Diskon)
           </h2>
           <div className="p-5 border rounded-xl border-gold/20 bg-gradient-to-br from-bg-card to-bg-elevated">
             <ol className="space-y-3">
@@ -927,8 +1576,8 @@ export default function Praktikum2() {
                 🎉 Kalau semua checklist lolos, kamu punya kerangka project
                 akhir lengkap:{" "}
                 <strong>
-                  layout → auth → role → CRUD admin → katalog → cart → checkout
-                  → status pesanan
+                  layout → auth → role → CRUD admin → katalog → cart (dengan
+                  preview diskon) → checkout (dengan diskon) → status pesanan
                 </strong>
                 .
               </p>

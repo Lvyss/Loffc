@@ -10,7 +10,7 @@ bootstrap/app.php              ← alias role + redirectUsersTo
 routes/web.php                 ← versi Fase 2
 database/migrations/
 │   ├── 0001_01_01_000000_create_users_table.php  ← + kolom role
-│   └── xxxx_create_toko_tables.php               ← 4 tabel toko
+│   └── xxxx_create_toko_tables.php               ← 4 tabel + subtotal + discount 🆕
 database/seeders/DatabaseSeeder.php
 resources/views/
 ├── layouts/app.blade.php      ← navbar + flash + Bootstrap
@@ -24,6 +24,7 @@ const analogi = [
   { konsep: "Model + Relasi", analogi: "Denah antar ruangan (kategori↔item↔order)" },
   { konsep: "Seeder", analogi: "Barang contoh yang langsung ditata di toko" },
   { konsep: "Role + Middleware", analogi: "Pintu berbeda untuk admin dan customer" },
+  { konsep: "Diskon 🆕", analogi: "Aturan toko: belanja ≥ Rp 20.000 dapat potongan 10%" },
 ];
 
 const steps = [
@@ -67,11 +68,11 @@ composer -V`,
   },
   {
     no: "01",
-    title: "Migration: Kolom role + 4 Tabel Toko",
+    title: "Migration: role + 4 Tabel Toko + Kolom Diskon 🆕",
     fungsi:
-      "Menambah kolom role di users, dan membuat tabel categories, items, orders, order_items dalam satu migration.",
+      "Menambah kolom role di users, membuat tabel categories, items, orders, order_items, dan menambah 2 kolom untuk diskon di orders.",
     kenapa:
-      "Satu migration untuk semua tabel toko supaya urutan pasti benar (foreign key butuh tabel induk lebih dulu). Kolom role dipakai middleware untuk membedakan admin vs customer.",
+      "Satu migration untuk semua tabel toko supaya urutan pasti benar (FK butuh tabel induk dulu). 🆕 Diskon butuh kolom `subtotal` (belanja sebelum diskon) dan `discount` (nominal potongan) di `orders` — tanpa dua kolom ini, struk tidak bisa menampilkan 'belanja Rp 25.000, diskon Rp 2.500, total Rp 22.500'.",
     actions: [
       {
         text: "Generate model & migration:",
@@ -89,7 +90,7 @@ $table->string('role')->default('customer'); // admin / customer`,
         label: "database/migrations/0001_..._create_users_table.php",
       },
       {
-        text: "Buka migration `create_toko_tables`, isi method `up()` dan `down()`:",
+        text: "Buka migration `create_toko_tables`, isi method `up()` dan `down()`. Perhatikan 🆕 `subtotal` dan `discount` di tabel `orders`:",
         code: `public function up(): void
 {
     Schema::create('categories', function (Blueprint $table) {
@@ -112,6 +113,12 @@ $table->string('role')->default('customer'); // admin / customer`,
     Schema::create('orders', function (Blueprint $table) {
         $table->id();
         $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+
+        // 🆕 DISKON: subtotal = belanja sebelum diskon, discount = nominal potongan
+        $table->unsignedInteger('subtotal')->default(0);
+        $table->unsignedInteger('discount')->default(0);
+
+        // total = subtotal - discount
         $table->unsignedInteger('total');
         $table->string('status')->default('pending'); // pending, diproses, selesai
         $table->timestamps();
@@ -141,11 +148,11 @@ public function down(): void
   },
   {
     no: "02",
-    title: "Model: Relasi & Helper",
+    title: "Model: Relasi & Helper (termasuk calculateDiscount 🆕)",
     fungsi:
-      "Mengisi model dengan $fillable, relasi antar tabel, dan helper `isAdmin()` / `badgeColor()`.",
+      "Mengisi model dengan $fillable, relasi antar tabel, helper isAdmin() / badgeColor(), dan 🆕 method calculateDiscount() di Order.",
     kenapa:
-      "Relasi membuat query jadi rapi (mis. `$item->category->name`). Helper `isAdmin()` dan `badgeColor()` menghindari tulis ulang logika di banyak view.",
+      "Relasi membuat query jadi rapi (mis. $item->category->name). Helper isAdmin() dan badgeColor() menghindari tulis ulang logika di banyak view. 🆕 Aturan diskon (≥ Rp 20.000 → 10%) ditulis SEKALI di method static `Order::calculateDiscount()`, dipakai di cart preview, checkout, dan admin.",
     actions: [
       {
         text: "Ganti isi `app/Models/Category.php`:",
@@ -194,7 +201,7 @@ class Item extends Model
         label: "app/Models/Item.php",
       },
       {
-        text: "Ganti isi `app/Models/Order.php` (sudah termasuk helper badgeColor):",
+        text: "Ganti isi `app/Models/Order.php`. 🆕 $fillable ditambah subtotal & discount; method calculateDiscount() menyimpan aturan diskon:",
         code: `<?php
 
 namespace App\\Models;
@@ -205,7 +212,23 @@ use Illuminate\\Database\\Eloquent\\Relations\\HasMany;
 
 class Order extends Model
 {
-    protected $fillable = ['user_id', 'total', 'status'];
+    // 🆕 subtotal & discount ditambahkan
+    protected $fillable = ['user_id', 'subtotal', 'total', 'discount', 'status'];
+
+    // 🆕 ATURAN DISKON — ubah di sini kalau mau ganti ambang/persentase
+    public const DISCOUNT_THRESHOLD = 20000;
+    public const DISCOUNT_PERCENT   = 10;
+
+    // 🆕 Hitung potongan dari subtotal (belanja sebelum diskon).
+    // Kalau subtotal < 20.000, potongan = 0.
+    public static function calculateDiscount(int $subtotal): int
+    {
+        if ($subtotal < self::DISCOUNT_THRESHOLD) {
+            return 0;
+        }
+
+        return (int) round($subtotal * self::DISCOUNT_PERCENT / 100);
+    }
 
     public function user(): BelongsTo
     {
@@ -340,7 +363,7 @@ class DatabaseSeeder extends Seeder
         label: "bash",
       },
       {
-        text: "Cek lewat tinker:",
+        text: "Cek lewat tinker. 🆕 Tambah satu baris untuk menguji calculateDiscount():",
         code: `php artisan tinker
 
 App\\Models\\User::count();                                   // 2
@@ -348,11 +371,16 @@ App\\Models\\Category::count();                               // 3
 App\\Models\\Item::with('category')->first();                 // item + kategori
 App\\Models\\User::where('role','admin')->first()->isAdmin(); // true
 Schema::hasTable('order_items');                              // true
+
+// 🆕 Uji aturan diskon
+App\\Models\\Order::calculateDiscount(15000);   // 0   (di bawah threshold)
+App\\Models\\Order::calculateDiscount(20000);   // 2000
+App\\Models\\Order::calculateDiscount(25500);   // 2550
 exit`,
         label: "bash",
       },
       {
-        text: "Database punya tabel users, categories, items, orders, order_items, sessions; 2 user, 3 kategori, 6 item.",
+        text: "Database punya tabel users, categories, items, orders, order_items, sessions; 2 user, 3 kategori, 6 item; dan calculateDiscount() bekerja sesuai aturan.",
         bukti: true,
       },
     ],
@@ -555,6 +583,7 @@ class AuthController extends Controller
 @section('content')
     <h2>Selamat datang di {{ config('app.name') }}</h2>
     <p class="text-muted">Katalog produk akan tampil di sini.</p>
+    <p class="text-muted small">🎉 Promo: belanja min. Rp 20.000 dapat diskon 10%.</p>
 @endsection`,
         label: "resources/views/home.blade.php",
       },
@@ -731,7 +760,7 @@ php artisan serve`,
 ];
 
 const checklist = [
-  { text: "Buka `/` tanpa login", detail: "Beranda tampil, navbar Login & Register." },
+  { text: "Buka `/` tanpa login", detail: "Beranda tampil, navbar Login & Register, ada promo diskon." },
   { text: "Buka `/akun` tanpa login", detail: "Dilempar ke `/login`." },
   { text: "Login salah password", detail: "Pesan 'Email atau password salah.'" },
   { text: "Login budi@toko.test / password", detail: "Masuk beranda, flash hijau, nama muncul di navbar." },
@@ -741,6 +770,8 @@ const checklist = [
   { text: "Register dengan email yang sudah ada", detail: "Error 'email sudah dipakai'." },
   { text: "Register akun valid", detail: "Otomatis login, role = customer." },
   { text: "Salah login 6 kali berturut-turut", detail: "Halaman 429 (throttle)." },
+  { text: "🆕 Tinker: `Order::calculateDiscount(15000)`", detail: "Hasil 0 (di bawah threshold)." },
+  { text: "🆕 Tinker: `Order::calculateDiscount(25000)`", detail: "Hasil 2500." },
 ];
 
 export default function Praktikum1() {
@@ -762,14 +793,13 @@ export default function Praktikum1() {
             Pertemuan 10 · Praktikum 1
           </span>
           <h1 className="mt-4 text-4xl font-bold leading-tight font-display md:text-5xl">
-            <span className="gold-gradient-text">
-              Fondasi Toko Mini
-            </span>
+            <span className="gold-gradient-text">Fondasi Toko Mini + Diskon</span>
           </h1>
           <p className="max-w-2xl mt-3 text-sm leading-relaxed text-neutral-400">
-            Fase 0 → Fase 2 dari panduan: buat project, migration lengkap,
-            model + relasi, seeder, middleware role, auth login/register,
-            layout, dan route Fase 2.
+            Fase 0 → Fase 2 dari panduan: buat project, migration lengkap
+            (termasuk 🆕 kolom diskon), model + relasi + aturan diskon,
+            seeder, middleware role, auth login/register, layout, dan route
+            Fase 2.
           </p>
 
           <div className="flex flex-wrap gap-2 mt-5">
@@ -777,7 +807,7 @@ export default function Praktikum1() {
               ⚙️ PHP 8.3+, Composer, XAMPP / Laragon
             </span>
             <span className="px-3 py-1 text-xs border rounded-full border-gold/20 bg-bg-elevated text-neutral-300">
-              🎯 Database → Model → Seeder → Auth → Route
+              🎯 Database → Model → Diskon → Seeder → Auth → Route
             </span>
           </div>
         </div>
@@ -801,7 +831,9 @@ export default function Praktikum1() {
 
           <div className="px-4 py-3 mt-4 border rounded-lg border-gold/20 bg-gold/5">
             <p className="text-xs text-gold-soft">
-              💡 Di akhir Praktikum 1 semua route Fase 2 sudah jalan. Admin panel & alur customer diisi di Praktikum 2.
+              💡 Di akhir Praktikum 1 semua route Fase 2 sudah jalan dan aturan
+              diskon sudah tertanam di model Order. Admin panel & alur
+              customer (dengan diskon aktif) diisi di Praktikum 2.
             </p>
           </div>
         </section>
@@ -901,7 +933,9 @@ export default function Praktikum1() {
 
             <div className="px-4 py-3 mt-5 border rounded-lg border-gold/20 bg-gold/5">
               <p className="text-xs text-gold-soft">
-                🎉 Semua checklist beres → lanjut ke <strong>Praktikum 2</strong>: admin panel dan alur customer (katalog, cart, checkout).
+                🎉 Semua checklist beres → lanjut ke <strong>Praktikum 2</strong>:
+                admin panel dan alur customer, di mana diskon otomatis aktif
+                saat checkout ≥ Rp 20.000.
               </p>
             </div>
           </div>
